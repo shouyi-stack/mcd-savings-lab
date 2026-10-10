@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<!--
+  省钱月报模板 · 麦麦省钱精算局
+  ------------------------------------------------
+  用法：用 ledger.py report 的输出填充下列占位符，得到一张可直接截图的月报。
+  占位符：
+    2026 年 10 月        —— 如「2026 年 10 月」（全量视图可填「全部时间」）
+    ¥128.60     —— 如「¥128.60」
+    12       —— 如「12」
+    75% (18/24)     —— 如「75% (18/24)」
+    24       —— 如「24」
+    3       —— 如「3」（7 天内到期的未用券）
+    麦辣鸡腿堡 · 中杯可乐 · 麦旋风     —— 如「麦辣鸡腿堡 / 中杯可乐」，多个用 · 连接
+    2026-10-10 19:40     —— 如「2026-10-10 19:40」
+  注意：本模板不含任何个人敏感信息，仅作本地展示用。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>麦麦省钱月报 · 麦麦省钱精算局</title>
+<style>
+  :root{
+    --mcd-red:#DA291C;
+    --mcd-yellow:#FFC72C;
+    --ink:#1C1C1C;
+    --muted:#6B6B6B;
+    --line:#EDEDED;
+    --card:#FFFFFF;
+    --bg:#F5F5F7;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    display:flex;justify-content:center;align-items:flex-start;
+    padding:32px 16px;min-height:100vh;
+  }
+  .report{
+    width:640px;max-width:100%;
+    background:var(--card);
+    border-radius:24px;
+    box-shadow:0 12px 40px rgba(0,0,0,.10);
+    overflow:hidden;
+  }
+  /* 顶部 */
+  .head{
+    background:var(--mcd-red);
+    color:#fff;
+    padding:28px 32px 24px;
+    position:relative;
+  }
+  .head::after{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:6px;
+    background:var(--mcd-yellow);
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-size:13px;letter-spacing:.5px;opacity:.95}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--mcd-yellow)}
+  .title{font-size:26px;font-weight:800;margin-top:14px;letter-spacing:1px}
+  .month{font-size:14px;opacity:.9;margin-top:6px}
+  /* 主数字 */
+  .hero{
+    padding:34px 32px 10px;
+    display:flex;flex-direction:column;align-items:flex-start;
+  }
+  .hero .label{font-size:14px;color:var(--muted);letter-spacing:.5px}
+  .hero .value{
+    font-size:56px;font-weight:800;color:var(--mcd-red);
+    line-height:1.1;margin-top:8px;
+    font-variant-numeric:tabular-nums;
+  }
+  .hero .value small{font-size:22px;font-weight:700;color:var(--muted);margin-left:6px}
+  .hero .sub{font-size:13px;color:var(--muted);margin-top:8px}
+  /* 指标格 */
+  .grid{
+    display:grid;grid-template-columns:repeat(3,1fr);
+    gap:12px;padding:24px 32px 8px;
+  }
+  .cell{
+    background:#FAFAFA;border:1px solid var(--line);
+    border-radius:14px;padding:16px 14px;text-align:center;
+  }
+  .cell .k{font-size:12px;color:var(--muted);margin-bottom:8px}
+  .cell .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+  .cell .v.accent{color:var(--mcd-red)}
+  /* 品类 */
+  .cat{padding:20px 32px 4px}
+  .cat .k{font-size:12px;color:var(--muted);margin-bottom:10px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{
+    background:rgba(255,199,44,.22);
+    border:1px solid rgba(255,199,44,.6);
+    color:#7A5A00;
+    font-size:13px;font-weight:600;
+    padding:6px 14px;border-radius:999px;
+  }
+  /* 页脚 */
+  .foot{
+    margin-top:26px;padding:18px 32px 24px;
+    border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:12px;color:var(--muted);line-height:1.6;
+  }
+  .foot .r{text-align:right}
+  .foot b{color:var(--ink)}
+</style>
+</head>
+<body>
+  <div class="report">
+    <div style="position:absolute;z-index:9"></div>
+    <div style="background:#FFC72C;color:#7A5A00;font-size:12px;font-weight:700;text-align:center;padding:6px">示例数据 · 仅用于效果预览</div>
+    <!-- 顶部 -->
+    <div class="head">
+      <div class="brand"><span class="dot"></span>麦麦省钱精算局 · McSavings Lab</div>
+      <div class="title">省钱月报</div>
+      <div class="month">2026 年 10 月</div>
+    </div>
+
+    <!-- 主数字 -->
+    <div class="hero">
+      <div class="label">累计省下</div>
+      <div class="value">¥128.60</div>
+      <div class="sub">这是在麦当劳「把券花在对的地方」带来的真实节省</div>
+    </div>
+
+    <!-- 指标 -->
+    <div class="grid">
+      <div class="cell">
+        <div class="k">订单数</div>
+        <div class="v">12</div>
+      </div>
+      <div class="cell">
+        <div class="k">券核销率</div>
+        <div class="v accent">75% (18/24)</div>
+      </div>
+      <div class="cell">
+        <div class="k">券总数</div>
+        <div class="v">24</div>
+      </div>
+    </div>
+
+    <!-- 品类与提醒 -->
+    <div class="cat">
+      <div class="k">偏好品类</div>
+      <div class="chips">
+        <span class="chip">麦辣鸡腿堡 · 中杯可乐 · 麦旋风</span>
+      </div>
+    </div>
+    <div class="cat" style="padding-top:16px">
+      <div class="k">临期提醒（7 天内到期）</div>
+      <div class="cell" style="text-align:left;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;color:var(--muted)">即将过期的券</span>
+        <span style="font-size:20px;font-weight:700;color:var(--mcd-red)">3</span>
+      </div>
+    </div>
+
+    <!-- 页脚 -->
+    <div class="foot">
+      <div>生成于 <b>2026-10-10 19:40</b></div>
+      <div class="r">
+        数据仅存本地 · 不上传<br>
+        非麦当劳官方产品，仅供参考
+      </div>
+    </div>
+  </div>
+</body>
+</html>

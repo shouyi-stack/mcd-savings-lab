@@ -30,6 +30,25 @@
 | 券生命周期管理 | ❌      | ✅ 到期提醒 + 核销率统计  |
 | 月度省钱报告  | ❌      | ✅ 一键生成          |
 
+### 数据是怎么沉淀的
+
+每次决策都落进本地 SQLite（`skill/scripts/ledger.py`），三张表 —— `coupons`（券）/ `orders`（订单）/ `points_log`（积分）：
+
+```bash
+# 一键出账本：累计省下 / 订单数 / 券核销率 / 临期券 / 偏好品类
+python skill/scripts/ledger.py report
+
+# 只看 7 天内到期的券
+python skill/scripts/ledger.py list --expiring 7
+
+# 导出订单明细做二次分析
+python skill/scripts/ledger.py export --out data/orders.csv
+```
+
+把 `report` 的输出填进 `skill/assets/report-template.html`（占位符见文件头注释），就得到一张可直接截图的**省钱月报**——效果见 `skill/assets/report-sample.html`。
+
+> ⚠️ 金额单位不写死：券包的「优惠」实测为**元**，算价工具单位待实测，因此入库时用 `--unit` 显式声明来源单位，本地统一以「分」存储以避免浮点误差。
+
 ## 快速开始
 
 ### 1. 申请 MCP Token
@@ -92,8 +111,10 @@ mcd-savings-lab/
     │   ├── mcp_call.py         # MCP 统一调用封装
     │   ├── ledger.py           # 消费数据资产层
     │   └── smoke_test.py       # 冒烟测试
-    ├── references/             # 工具速查 / 流程 / 规则 / 合规
-    └── assets/                 # 省钱月报模板
+    ├── references/             # 工具速查 / 流程 / 算价规则 / 合规红线
+    └── assets/
+        ├── report-template.html  # 省钱月报模板（占位符填充）
+        └── report-sample.html    # 月报效果样本（示例数据）
 ```
 
 ## Roadmap
