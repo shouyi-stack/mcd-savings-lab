@@ -51,6 +51,9 @@ python skill/scripts/ledger.py export --out data/orders.csv
 
 ## 快速开始
 
+> 📦 **想直接试用 / 分享给别人？** 见 [`INSTALL.md`](INSTALL.md) —— 含四种安装方式与常见问题。
+> ⚠️ 注意：Skill 本体在 **`skill/` 子目录**（仓库根目录放的是参赛文件），导入时请选 `skill/` 文件夹。
+
 ### 1. 申请 MCP Token
 
 访问 <https://open.mcd.cn/mcp> → 登录 → 【控制台】→【激活】→ 复制 Token
@@ -99,6 +102,7 @@ python skill/scripts/ledger.py export --out data/orders.csv
 ```
 mcd-savings-lab/
 ├── README.md                   # 项目介绍 / 安装 / 示例 / 目标用户
+├── INSTALL.md                  # 安装与试用指南（4 种安装方式）
 ├── CONTEST_DECLARATION.md      # 参赛声明（官方原文）
 ├── MCP_INTEGRATION.md          # MCP Server / Tool / 流程 / 业务价值
 ├── mcp-config.example.json     # 连接器配置示例（仅占位符）
