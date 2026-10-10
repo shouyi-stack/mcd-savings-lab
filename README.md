@@ -10,7 +10,9 @@
 
 > 本项目为 **麦当劳程序员节创意开发大赛** 参赛作品，由 **守毅客栈** 独立开发，非麦当劳官方产品。
 
-![demo](assets/demo.gif)
+![领券结果](assets/shot-1-coupons.png)
+
+![省钱月报](assets/shot-3-report.png)
 
 ## 它解决什么问题
 
