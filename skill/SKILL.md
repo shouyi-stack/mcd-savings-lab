@@ -54,14 +54,16 @@ agent_created: true
 
 ## 硬性约束（Gotchas）
 
-1. **响应有两种格式**：JSON 包裹（`now-time-info`、`query-my-account`）与 **Markdown 文本**（`campaign-calendar`、`available-coupons`、`query-my-coupons`）——解析前先判断，勿假设都有 JSON 字段。
-2. **金额单位存疑**：`query-my-coupons` 的「优惠」实测为**元**（如 `¥13.3`）；算价工具（`calculate-price`）单位**待实测**，勿先写死「÷100」。
-3. `calculate-price` / `create-order` 必须传**完整 JSON**（`storeCode` + `beCode` + `addressId` + `items`）。
-4. 批量试算须**串行节流**（间隔 ≥150ms），否则触发 429。
-5. Token 只从环境变量 `MCD_MCP_TOKEN` 读取，**禁止写入文件或日志**。
-6. `auto-bind-coupons` 与下单均为**写操作**，必须二次确认后才执行。
-7. `accountId`、券明细等个人信息**只做本地分析**，不入公开产物、不打日志。
-8. 绝不做跨品牌价格对比，绝不用「薅秃」「吃垮」等措辞。
+1. **响应有两种格式**：JSON 包裹（`now-time-info`、`query-my-account`、`query-nearby-stores`、`query-meals`、`query-store-coupons`、`calculate-price`、`delivery-query-addresses`）与 **Markdown 文本**（`campaign-calendar`、`available-coupons`、`query-my-coupons`）。规律：**营销/券包类给 Markdown，点餐/算价类给 JSON**。
+2. **金额单位差 100 倍（已实测）**：`query-meals` 菜单价是**元**（`"33.5"`），`calculate-price` 算价是**分**（`3350`）。跨工具比对前先统一到分；例外：算价响应里的 `realDiscount` 是元。
+3. **同名不同义**：算价的 `originalPrice` 是「叠券前小计」（≠ 菜单的划线价），所以 `discount` **只反映券的优惠，不含套餐本身折扣**。
+4. **券 ID 只有 `query-store-coupons` 给** —— `available-coupons`（无 ID）、`query-my-coupons`（只有用券后价格）都给不了；叠券算价必须靠它。
+5. `calculate-price` / `create-order` 必须传 `storeCode` + `orderType` + `beType` + `items`；到店自取**不需要** `addressId`，`beCode` 仅 `beType=5/2/6` 时传。
+6. 批量试算须**串行节流**（间隔 ≥150ms），否则触发 429。
+7. Token 只从环境变量 `MCD_MCP_TOKEN` 读取，**禁止写入文件或日志**。
+8. `auto-bind-coupons` 与下单均为**写操作**，必须二次确认后才执行。
+9. `accountId`、券明细等个人信息**只做本地分析**，不入公开产物、不打日志。
+10. 绝不做跨品牌价格对比，绝不用「薅秃」「吃垮」等措辞。
 
 ## 常见问题（FAQ）
 

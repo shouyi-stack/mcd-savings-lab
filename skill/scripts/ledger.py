@@ -19,7 +19,7 @@
     - 无硬编码密钥；数据库路径可由环境变量 MCD_LEDGER_DB 覆盖
     - 金额统一以「分」为存储单位（整数，避免浮点误差），但**不假设输入单位**：
       用 --unit 显式声明来源单位（yuan / fen），并保留原始值与原始单位以便溯源
-      （⚠️ `query-my-coupons` 实测「优惠」为元；`calculate-price` 单位待实测）
+      （⚠️ 已实测 2026-10-11：`query-meals` 菜单价为**元**、`calculate-price` 算价为**分**，差 100 倍）
     - `accountId` 等个人信息一律不入库
     - 所有写操作幂等（INSERT OR REPLACE），重复导入不会产生脏数据
 """

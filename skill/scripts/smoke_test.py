@@ -4,16 +4,22 @@
 只做**只读**检查，不会领券、不会下单、不写入任何数据。
 
 用法:
-    python smoke_test.py                 # 联机跑 5 个已实测只读工具
+    python smoke_test.py                 # 联机跑无参只读工具
     python smoke_test.py --offline       # 只检查环境与文件，不联网
     python smoke_test.py --tools now-time-info query-my-account
     python smoke_test.py --json          # 机器可读输出
 
 检查内容:
     1. 环境变量 MCD_MCP_TOKEN 是否就绪（只报「已设置/未设置」，绝不打印值）
-    2. 关键文件是否齐全（SKILL.md / ledger.py / mcp_call.py）
+    2. 关键文件是否齐全（SKILL.md / ledger.py / mcp_call.py / references 等）
     3. ledger.py 能否正常建库并出报告（本地自检）
     4. 逐个调用只读工具，判断响应格式（JSON 包裹 vs Markdown 文本）
+
+范围说明:
+    本脚本只自动测**无需参数**的只读工具。
+    另有 4 个只读工具需要门店上下文（storeCode 等），无法在冒烟测试中盲调，
+    已通过真实调用单独验证（2026-10-11），见 references/tools.md：
+        query-nearby-stores / query-meals / query-store-coupons / calculate-price
 """
 import argparse
 import json
@@ -24,22 +30,28 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKILL_ROOT = os.path.dirname(HERE)
 
-# 已实测的只读工具（写操作如 auto-bind-coupons / create-order 一律不测）
+# 已实测的「无参」只读工具（写操作如 auto-bind-coupons / create-order 一律不测）
+# 注：需门店上下文的 4 个工具见模块 docstring「范围说明」，不列入此处以免盲调报错。
 READ_ONLY_TOOLS = [
     "now-time-info",
     "campaign-calendar",
     "available-coupons",
     "query-my-coupons",
     "query-my-account",
+    "delivery-query-addresses",
 ]
 
 REQUIRED_FILES = [
     "SKILL.md",
     "scripts/mcp_call.py",
     "scripts/ledger.py",
+    "scripts/smoke_test.py",
     "references/tools.md",
     "references/flows.md",
+    "references/pricing-rules.md",
+    "references/compliance.md",
     "assets/report-template.html",
+    "assets/report-sample.html",
 ]
 
 
@@ -133,7 +145,7 @@ def call_tool(tool, args=None):
 def main():
     p = argparse.ArgumentParser(description="麦当劳 MCP 只读冒烟测试")
     p.add_argument("--offline", action="store_true", help="跳过联网，仅做本地自检")
-    p.add_argument("--tools", nargs="*", default=None, help="指定要测的工具（默认 5 个只读工具）")
+    p.add_argument("--tools", nargs="*", default=None, help="指定要测的工具（默认全部无参只读工具）")
     p.add_argument("--json", action="store_true", help="以 JSON 输出")
     a = p.parse_args()
 

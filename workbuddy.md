@@ -84,9 +84,15 @@
 3. 内置**串行节流**（间隔 ≥150ms），规避 600 次/分钟限流
 4. 401/429/403 **转友好提示**，不抛栈；支持 `--help` / `--dry-run`
 
-### 3.3 真实工具调用（5 个只读工具全部跑通）
+### 3.3 真实工具调用（10 个只读工具全部跑通）
 
-逐步实测并记录字段：`now-time-info`、`campaign-calendar`、`available-coupons`、`query-my-coupons`、`query-my-account`。
+逐步实测并记录字段，分两批完成：
+
+**第一批（2026-10-10 · 营销与券包）**：`now-time-info`、`campaign-calendar`、`available-coupons`、`query-my-coupons`、`query-my-account`。
+
+**第二批（2026-10-11 · 点餐与算价链路）**：`query-nearby-stores`、`query-meals`、`query-store-coupons`、`calculate-price`、`delivery-query-addresses`。
+
+第二批打通了「**门店 → 菜单 → 门店券 → 算价**」这条核心链路（这也是「省多少钱」唯一能算出真数的地方），并顺带把挂了整天的**金额单位**问题彻底闭环——见 §4.2。
 
 **这一步是「创意」变「可信」的转折点**——所有文档里的字段、格式、单位，都是从真实返回里抄下来的，而不是从方案示例里抄的。
 
@@ -125,6 +131,23 @@ SQLite 三表 `coupons` / `orders` / `points_log`，命令 `init` / `log-coupons
 - `tools.md` / `MCP_INTEGRATION.md` / `SKILL.md` 里明确标注「券包实测为元；算价工具单位待实测，勿先写死」
 - `ledger.py` 采用「**存储统一为分 + `--unit` 显式声明来源 + 保留原始值溯源**」的方案，把不确定性交给调用方，而不是藏在代码里
 
+**后续（2026-10-11）：结论被进一步修正，比当初的假设更细**
+
+`calculate-price` 实测跑通后，单位问题终于有了明确答案——而且比「分 / 元」二选一更麻烦：
+
+| 来源 | 单位 |
+|---|---|
+| `calculate-price` 全部价格字段 | **分**（`3350` = ¥33.50） |
+| `calculate-price` 的 `realDiscount` | ⚠️ **元**（同一响应内的例外） |
+| `query-meals` 菜单价 `currentPrice` / `originalPrice` | **元**（字符串 `"33.5"`） |
+| `query-my-coupons` 的「优惠」 | **元** |
+
+所以真正的坑不是「单位是什么」，而是两层：
+1. **同一条链路上差 100 倍**（菜单是元、算价是分）；
+2. **单个响应内部也混用单位**（`calculate-price` 里 `realDiscount` 是元，其余是分）。
+
+回过头看，当初「不写死 ÷100、改用 `--unit` 显式声明」的决策被真实数据证明是**对的**——若按方案原文写死 ÷100，菜单价会整整错 100 倍。这也是 `ledger.py` 至今不硬编码换算的原因。
+
 ### 4.3 发现响应有**两种格式**
 
 实测发现同一套 MCP 返回两种形态：
@@ -154,6 +177,28 @@ SQLite 三表 `coupons` / `orders` / `points_log`，命令 `init` / `log-coupons
 **最终方案（用户选择 B 方案）**：AI 不接触凭据，产出《手工推送操作手册》（三条推送路线 + 报错对照表），由用户本地执行。结果：**推送成功，远程 18 个文件与本地无差异**。
 
 > 这段的价值不在「AI 全自动」，而在**如实告知能力边界**：连接器做不到的，直接说明并给出可靠的替代路径，而不是反复重试或含糊其辞。
+
+### 4.6 修正自己前一天写下的错误（2026-10-11）
+
+第二批量实测不只是「补字段」，还**推翻了自己在 10-10 写下的两处文档结论**：
+
+| 之前的写法 | 实测真相 |
+|---|---|
+| `delivery-query-addresses` 可获取 `storeCode` / `beCode` / `addressId` | ❌ 它**只返回地址**（`addressId`/`contactName`/`fullAddress`/`phone`）；门店编码要走 `query-nearby-stores`（到店）或 `delivery-query-stores`（外送） |
+| `calculate-price` 需 `storeCode` + `beCode` + `addressId` **三元组** | ❌ 到店自取**不需要** `addressId`；`beCode` 仅在 `beType=5/2/6` 时传 |
+
+还有一处**语义陷阱**，只有真跑过算价才会发现：
+
+`calculate-price` 的 `originalPrice` 与 `query-meals` 的 `originalPrice` **同名不同义**——
+前者是「叠券前的小计」，后者是「划线价」。
+例：大堡口福三件套，菜单 `originalPrice = "48"`（划线价），算价 `originalPrice = 2290`（¥22.90）。
+
+**后果很实际**：算价的 `discount` **只反映「券」的优惠，不含套餐本身的折扣**。
+如果不实测算价，这个坑会一路带进月报，让「累计省下 ¥XX.XX」直接算错。
+
+三处修正已全部回写到 `references/tools.md`、`references/pricing-rules.md`、`references/flows.md`、`MCP_INTEGRATION.md`、`SKILL.md`。
+
+> 这正是 §2.3「诚实原则」的实践：**被推翻的假设要留痕**，而不是悄悄改掉。
 
 ---
 

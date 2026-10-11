@@ -34,37 +34,45 @@ now-time-info ✅          # 确认时间上下文
 
 ---
 
-## 链路二：点餐定位
+## 链路二：点餐定位（到店自取）
 
 ```
-delivery-query-addresses ⬜   # 取 storeCode / beCode / addressId
-  → query-meals ⬜            # 门店菜单（可售餐品）
-  → query-store-coupons ⬜    # 当前门店可用券
-  → calculate-price ⬜        # 价格试算（单组合）
+now-time-info ✅            # 时间上下文（判断券是否在有效期）
+  → query-nearby-stores ✅  # 取 storeCode（到店）
+  → query-meals ✅          # 门店菜单（可售餐品 + 菜单价）
+  → query-store-coupons ✅  # 当前门店可用券（含 couponId / couponCode）
+  → calculate-price ✅      # 价格试算（单组合）
 ```
 
 **正常路径**
-1. `delivery-query-addresses` 取配送地址三元组：`storeCode`、`beCode`、`addressId`。
-2. `query-meals` 拉取该门店可售餐品。
-3. `query-store-coupons` 拉取当前门店**下单可用**的券（区别于券包里的历史券）。
-4. `calculate-price` 传入完整 JSON 试算单组合价格。
+1. `query-nearby-stores`：先试收藏餐厅（`beType=1` + `searchType=1`）；为空则降级 `searchType=2` + 城市 + 关键词，取 `storeCode`。
+2. `query-meals`：`storeCode` + `orderType=1` + `beType=1` 拉菜单，从 `data.meals` 按 `productCode` 取餐品。
+3. `query-store-coupons`：同参数拉「门店下单可用」券（区别于券包历史券），取 `couponId` / `couponCode`。
+4. 用券的 `products[].productCode` **反查**该券适用哪件餐品。
+5. `calculate-price`：`storeCode` + `orderType=1` + `beType=1` + `items[]`（可叠 `couponId` / `couponCode`）试算。
+6. 读 `data.price`（**分**，÷100 展示）、`data.discount`（券省额）、`data.takeWayList`（下单要用的取餐方式 code）。
 
 **失败路径**
 
 | 情况 | 处理 |
 |---|---|
-| 无配送地址 | 引导先调用 `delivery-create-address` 创建地址，再回到本链路 |
+| 收藏餐厅为空（`code=600050`） | 降级 `searchType=2`，追问用户「城市 + 地标」 |
 | `query-meals` 返回空 | 提示该门店当前无在售餐品，建议更换门店（重新取 `storeCode`） |
-| 地址/门店三元组缺失 | **不调用** `calculate-price`（会因参数不完整失败），先补齐 |
-| `calculate-price` 参数不全 | 校验 `storeCode` + `beCode` + `addressId` + `items` 四项，缺项即提示 |
+| `query-store-coupons` 券为空 | **正常现象**（该门店无可用券），如实告知并展示菜单价，不报错 |
+| `storeCode` 缺失 | **不调用**后续工具（会失败），先补 `query-nearby-stores` |
+| `calculate-price` 参数不全 | 校验 `storeCode` + `orderType` + `beType` + `items` 四项；到店自取**不需要** `addressId` |
+| 金额单位混淆 | 菜单价是**元**、算价是**分** —— 展示前统一到分，见 `pricing-rules.md` §1 |
 | `401` / `429` | 同链路一：提示重新激活 / 退避重试 |
+
+> ℹ️ **外送场景（`orderType=2`）** 另走：`delivery-query-addresses` 取地址 → `delivery-query-stores` 取 `storeCode` + `beCode` → 再接上面的菜单/券/算价。
+> 外送链路**尚未实测**（见 `pricing-rules.md` §7）。
 
 ---
 
 ## 链路三：多组合试算比价
 
 ```
-对 2~3 套组合分别 calculate-price ⬜
+对 2~3 套组合分别 calculate-price ✅   # 2026-10-11 实测：3 套餐比价通过
   → 比较「优惠金额 / 实付」
   → 输出 Top3 省钱方案
   → ledger.py log-order（用户确认下单后）
@@ -73,8 +81,9 @@ delivery-query-addresses ⬜   # 取 storeCode / beCode / addressId
 **正常路径**
 1. 基于链路二的门店上下文，准备 2~3 套候选组合（如「单点 / 用券 / 用券+凑单」）。
 2. **串行**调用 `calculate-price`（间隔 ≥150ms，规避 429），逐套算价。
-3. 对比各组合的优惠字段与实付金额，排序。
-4. 输出 **Top3 方案**，标明「原价 / 券后 / 实付 / 立省」。
+3. 对比各组合的 `price` / `discount`（**均为分**），统一单位后排序。
+4. 输出 **Top3 方案**，标明「实付 / 划线价 / 比单点省」。
+   - ⚠️ 「划线价」取自 `query-meals.originalPrice`（**元**），「实付」取自 `calculate-price.price`（**分**）——**同名不同义**，务必分别换算。
 
 **失败路径**
 
@@ -83,7 +92,7 @@ delivery-query-addresses ⬜   # 取 storeCode / beCode / addressId
 | 多组合频繁触发 `429` | **降级为单组合试算**（先保证能出结果），并在回复中说明降级原因 |
 | 某一组合算价失败 | 跳过该组合继续，最终结果里注明「第 N 套不可用」 |
 | 全部组合失败 | 回退到链路二的门店信息，给出菜单 + 可用券，让用户手动选 |
-| 单位不一致风险 | ⚠️ 算价工具金额单位**待实测**；展示前先确认单位，勿直接套用券包的「元」 |
+| 单位不一致风险 | ✅ **已闭环**（2026-10-11）：算价为**分**，菜单为**元**；统一到分后再比 |
 | 用户直接说要下单 | 走「高风险动作」：复述清单 + 实付金额 → 二次确认 → 才 `create-order` |
 
 ---

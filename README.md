@@ -2,11 +2,15 @@
 
 > 一句话领券、一键算价、自动记账。把每次麦当劳消费，沉淀成你自己的消费数据资产。
 
-
-
 ![麦当劳 MCP](https://img.shields.io/badge/MCP-McDonald's%20China-red)
+
 ![License](https://img.shields.io/badge/license-MIT-green)
+
+
+
 ![Author](https://img.shields.io/badge/author-%E5%AE%88%E6%AF%85%E5%AE%A2%E6%A0%88-blue)
+
+
 
 > 本项目为 **麦当劳程序员节创意开发大赛** 参赛作品，由 **守毅客栈** 独立开发，非麦当劳官方产品。
 
@@ -49,11 +53,11 @@ python skill/scripts/ledger.py export --out data/orders.csv
 
 把 `report` 的输出填进 `skill/assets/report-template.html`（占位符见文件头注释），就得到一张可直接截图的**省钱月报**——效果见 `skill/assets/report-sample.html`。
 
-> ⚠️ 金额单位不写死：券包的「优惠」实测为**元**，算价工具单位待实测，因此入库时用 `--unit` 显式声明来源单位，本地统一以「分」存储以避免浮点误差。
+> ⚠️ **金额单位已实测闭环**：`query-meals` 的菜单价是**元**（`"33.5"`）、`calculate-price` 的算价结果是**分**（`3350`）——**同一条链路上差 100 倍**。因此入库时用 `--unit` 显式声明来源单位，本地统一以「分」存储以避免浮点误差。
 
 ## 快速开始
 
-> 📦 **想直接试用 / 分享给别人？** 见 [`INSTALL.md`](INSTALL.md) —— 含四种安装方式与常见问题。
+> 📦 **想直接试用 / 分享给别人？** 见 [`INSTALL.md`](INSTALL.md) —— 含四种安装方式与常见问题。  
 > ⚠️ 注意：Skill 本体在 **`skill/` 子目录**（仓库根目录放的是参赛文件），导入时请选 `skill/` 文件夹。
 
 ### 1. 申请 MCP Token
