@@ -121,7 +121,16 @@ mcd-savings-lab/
     │   ├── mcp_call.py         # MCP 统一调用封装
     │   ├── ledger.py           # 消费数据资产层
     │   └── smoke_test.py       # 冒烟测试
-    ├── references/             # 工具速查 / 流程 / 算价规则 / 合规红线
+    ├── references/             # 工具速查 / 流程 / 算价规则 / 错误码 / 合规
+    │   ├── tools.md            # 工具总览与响应格式（索引）
+    │   ├── tools-meta.md       # 基础与账户工具（时间 / 积分）
+    │   ├── tools-coupon.md     # 券与营销工具
+    │   ├── tools-ordering.md   # 到店点餐与算价
+    │   ├── tools-delivery.md   # 外送链路工具
+    │   ├── flows.md            # 四条标准链路
+    │   ├── pricing-rules.md    # 算价规则与坑点
+    │   ├── errors-faq.md       # 错误码与常见问题
+    │   └── compliance.md       # 合规红线
     └── assets/
         ├── report-template.html  # 省钱月报模板（占位符填充）
         └── report-sample.html    # 月报效果样本（示例数据）

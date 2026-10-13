@@ -1,7 +1,8 @@
 # 标准链路（flows）
 
 > 每条链路都写出**正常路径**与**失败路径**。失败时给用户明确提示与替代方案，而非直接报错退出。
-> 标注含义：✅ 已实测 ｜ ⬜ 待实测（步骤来自方案设计，未经真实调用验证）
+> 标注含义：✅ 已实测 ｜ ⚠️ 部分实测 ｜ ⬜ 待实测（步骤来自方案设计，未经真实调用验证）
+> 工具字段明细见 `tools.md` 及其子文件（`tools-meta` / `tools-coupon` / `tools-ordering` / `tools-delivery`）；错误码见 `errors-faq.md`。
 
 ---
 
@@ -64,8 +65,41 @@ now-time-info ✅            # 时间上下文（判断券是否在有效期）
 | 金额单位混淆 | 菜单价是**元**、算价是**分** —— 展示前统一到分，见 `pricing-rules.md` §1 |
 | `401` / `429` | 同链路一：提示重新激活 / 退避重试 |
 
-> ℹ️ **外送场景（`orderType=2`）** 另走：`delivery-query-addresses` 取地址 → `delivery-query-stores` 取 `storeCode` + `beCode` → 再接上面的菜单/券/算价。
-> 外送链路**尚未实测**（见 `pricing-rules.md` §7）。
+> ℹ️ **外送场景（`orderType=2`）** 另走：`delivery-query-addresses` 取地址 → `delivery-query-stores` 取 `storeCode` + `beCode` → 再接上面的菜单/券/算价。详见下方**链路四**。
+
+---
+
+## 链路四：外送（麦乐送 `orderType=2`）
+
+```
+now-time-info ✅                     # 时间上下文
+  → delivery-query-addresses ✅       # 取 addressId（无地址时返回空数组）
+  → delivery-query-stores ⚠️部分      # 取 storeCode + beCode（需真实 addressId）
+  → query-meals ⬜(外送)              # 外送菜单（orderType=2 + beType=2 + beCode）
+  → query-store-coupons ⬜            # 外送门店可用券
+  → calculate-price ⬜                # 外送算价（外送会多出 deliveryPrice / packingPrice）
+```
+
+**与到店的核心差异**：外送多了 **`beCode`** 这一步 —— 到店自取不传 `beCode`，但 `beType∈{2,5,6}` 时 `beCode` 是**硬依赖**，且**只能**由 `delivery-query-stores` 提供。
+
+**正常路径**
+1. `delivery-query-addresses` 列出配送地址，取 `addressId`。
+2. `delivery-query-stores(addressId, beType=2)` 取 `storeCode` + `beCode`。
+3. `query-meals(storeCode, orderType=2, beType=2, beCode)` 拉外送菜单 —— **必须带 `beCode`**。
+4. `query-store-coupons(storeCode, orderType=2, beType=2, beCode)` 拉外送门店券（取 `couponId` / `couponCode`）。
+5. `calculate-price(storeCode, orderType=2, beType=2, beCode, items[])` 试算；外送响应会额外带 `deliveryPrice` / `packingPrice`。
+
+**失败路径（已实测 3 条）**
+
+| 情况 | 返回 / 处理 |
+|---|---|
+| 无配送地址 | `delivery-query-addresses` 返回 `success:true` + `addresses:[]`（**空数组不是报错**）→ 引导用户先创建配送地址，再重试 |
+| `addressId` 无效 | `delivery-query-stores` 返回 `code=600020`「配送地址不存在」→ 回第 1 步重新取 `addressId` |
+| 外送场景漏传 `beCode` | `code=600048`「外送场景下，beType=2/5/6 时必传 beCode」→ 先补 `delivery-query-stores` 取 `beCode` |
+| 误用到店 `storeCode` 走外送 | 到店门店**没有**外送 `beCode`，外送算价必失败 → 外送**必须**走 `delivery-query-stores` |
+| `401` / `429` | 同链路一：提示重新激活 / 退避重试 |
+
+> ⚠️ 成功路径（外送菜单 / 门店券 / 外送算价）**待有配送地址后补测**（见 `pricing-rules.md` §7）。
 
 ---
 
@@ -97,9 +131,19 @@ now-time-info ✅            # 时间上下文（判断券是否在有效期）
 
 ---
 
-## 通用约束（三条链路共享）
+## 通用约束（四条链路共享）
 
-- **写操作需确认**：`auto-bind-coupons`、`create-order` 一律先复述后确认。
+- **写操作需确认**：`auto-bind-coupons`、`delivery-create-address`、`create-order` 一律先复述后确认。
 - **节流**：所有批量/循环调用串行执行，间隔 ≥150ms。
 - **隐私**：`accountId`、券明细只入本地库；日志与产物中一律脱敏。
 - **降级优先**：任何链路失败都给出**可用的替代路径**，而非只说「不支持」。
+
+---
+
+## 相关文件
+
+- 工具总览与响应格式 → `tools.md`
+- 各工具字段（按业务域）→ `tools-meta.md` / `tools-coupon.md` / `tools-ordering.md` / `tools-delivery.md`
+- 算价规则与金额单位 → `pricing-rules.md`
+- 错误码与常见问题 → `errors-faq.md`
+- 合规红线 → `compliance.md`

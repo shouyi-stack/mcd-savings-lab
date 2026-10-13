@@ -1,8 +1,9 @@
 # 算价规则与坑点（pricing-rules）
 
 > 原则：**只写验证过的；没验证的明确标「待实测」，不写死假设。**
-> 标注：✅ 已实测 ｜ ⬜ 待实测
+> 标注：✅ 已实测 ｜ ⚠️ 部分实测 ｜ ⬜ 待实测
 > 最后更新：2026-10-11（算价链路已跑通，单位问题闭环）
+> `calculate-price` 的字段明细见 `tools-ordering.md` §9；错误码见 `errors-faq.md`。
 
 ---
 
@@ -153,11 +154,22 @@ originalPrice 1900 (¥19.00) → price 1330 (¥13.30)，discount 570 (¥5.70)
 - [x] `delivery-query-addresses` 实际字段名 → `addresses[]{addressId, contactName, fullAddress, phone}`；**不含 storeCode**
 - [x] `query-nearby-stores` 取 `storeCode` 的可用路径 → `searchType=2` + `city` + `keyword`
 - [x] 叠券算价全链路 → `query-store-coupons` 取 ID → `calculate-price` 叠券 → `discount` 校验通过
+- [x] 外送链路**前置依赖与失败码** → `beCode` 是硬依赖（`600048`）；无效地址 `600020`；无地址返回空数组（2026-10-11）
 
 **仍待验证**
 
 - [ ] 凑单门槛能否直接取到（券信息无门槛字段；`calculate-price` 的 `enjoyable.balance` 疑似门槛差额，需构造临界用例）
 - [ ] `promotionId` 的实际用途（是否需要回传算价）
-- [ ] 外送链路（`orderType=2` / `delivery-query-stores` / `delivery-create-address`）
+- [ ] 外送链路**成功路径**（外送菜单 / 门店券 / 外送算价）—— 需真实配送地址；**失败路径已闭环**（见 `tools-delivery.md`、`flows.md` 链路四）
 - [ ] `withOrder` 随单购参数对最终价的影响
 - [ ] `modification` 特制选项（`selectedKey` / `unselectedKey`）传参规则
+
+---
+
+## 相关文件
+
+- 工具总览与响应格式 → `tools.md`
+- `calculate-price` 字段明细 → `tools-ordering.md` §9
+- 标准链路与失败路径 → `flows.md`
+- 错误码与常见问题 → `errors-faq.md`
+- 合规红线 → `compliance.md`

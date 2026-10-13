@@ -18,7 +18,7 @@
 范围说明:
     本脚本只自动测**无需参数**的只读工具。
     另有 4 个只读工具需要门店上下文（storeCode 等），无法在冒烟测试中盲调，
-    已通过真实调用单独验证（2026-10-11），见 references/tools.md：
+    已通过真实调用单独验证（2026-10-11），见 references/tools-ordering.md：
         query-nearby-stores / query-meals / query-store-coupons / calculate-price
 """
 import argparse
@@ -47,8 +47,13 @@ REQUIRED_FILES = [
     "scripts/ledger.py",
     "scripts/smoke_test.py",
     "references/tools.md",
+    "references/tools-meta.md",
+    "references/tools-coupon.md",
+    "references/tools-ordering.md",
+    "references/tools-delivery.md",
     "references/flows.md",
     "references/pricing-rules.md",
+    "references/errors-faq.md",
     "references/compliance.md",
     "assets/report-template.html",
     "assets/report-sample.html",

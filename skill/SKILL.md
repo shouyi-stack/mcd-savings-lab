@@ -24,7 +24,7 @@ agent_created: true
 
 1. **确认时间上下文** — 调 `now-time-info`（返回 JSON 包裹），拿到服务器年月日，供后续按日期查活动/券。
 2. **领券** — `available-coupons`（返回 **Markdown 列表**）→ `auto-bind-coupons`（**写操作，需用户确认**）→ `query-my-coupons`（Markdown）→ 写入本地账本。
-3. **点餐定位** — `delivery-query-addresses` 取 `storeCode` / `beCode` / `addressId` → `query-meals`（门店菜单）→ `query-store-coupons`（门店可用券）。
+3. **点餐定位** — `query-nearby-stores`（**到店**，取 `storeCode`）或 `delivery-query-stores`（**外送**，取 `storeCode` + `beCode`）→ `query-meals`（门店菜单）→ `query-store-coupons`（门店可用券）。
 4. **试算比价** — 对 2~3 套组合分别调 `calculate-price`，比较优惠金额，输出最优方案。
 5. **落库** — 把本次决策写入本地账本（`scripts/ledger.py`）。
 6. **下单** — **高风险动作**：必须先复述完整清单与实付金额，待用户二次确认后才执行。
@@ -78,9 +78,14 @@ agent_created: true
 
 | 文件 | 内容 |
 |---|---|
-| `references/tools.md` | 已实测工具的字段与响应格式（只记验证过的） |
-| `references/flows.md` | 三条链路的标准步骤与失败路径 |
-| `references/pricing-rules.md` | 算价规则与坑点 |
+| `references/tools.md` | 工具总览与两种响应格式（**索引**） |
+| `references/tools-meta.md` | 基础与账户工具（时间 / 积分） |
+| `references/tools-coupon.md` | 券与营销工具（含「券 ID 从哪来」） |
+| `references/tools-ordering.md` | 到店「定位 → 菜单 → 券 → 算价」核心链路 |
+| `references/tools-delivery.md` | 外送链路工具与专属错误码 |
+| `references/flows.md` | 四条链路的标准步骤与失败路径 |
+| `references/pricing-rules.md` | 算价规则与坑点（金额单位 / 同名不同义） |
+| `references/errors-faq.md` | 错误码速查与常见问题 |
 | `references/compliance.md` | 合规红线速查 |
 | `scripts/mcp_call.py` | MCP 统一调用封装（含节流与友好错误） |
 | `scripts/ledger.py` | 本地消费数据资产层（SQLite） |
